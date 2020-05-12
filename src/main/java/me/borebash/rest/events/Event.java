@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Builder @AllArgsConstructor @NoArgsConstructor
-@Getter @Setter @EqualsAndHashCode(of = {"id"})
+@Getter @Setter @EqualsAndHashCode(of = "id")
 @Entity
 public class Event {
 
