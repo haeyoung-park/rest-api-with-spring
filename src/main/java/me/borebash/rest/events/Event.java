@@ -2,6 +2,9 @@ package me.borebash.rest.events;
 
 import java.time.LocalDateTime;
 
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
@@ -13,7 +16,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Builder @AllArgsConstructor @NoArgsConstructor
-@Getter @Setter @EqualsAndHashCode(of = {"id", "name"})
+@Getter @Setter @EqualsAndHashCode(of = {"id"})
+@Entity
 public class Event {
 
     @Id @GeneratedValue
@@ -39,5 +43,7 @@ public class Event {
     private int limitOfEnrollement;
     private boolean offline;
     private boolean free;
+    // Default Ordinal
+    @Enumerated (EnumType.STRING)
     private EventStatus eventStatus;
 }
