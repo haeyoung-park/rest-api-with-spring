@@ -1,10 +1,9 @@
 package me.borebash.rest.events;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
-
-import me.borebash.rest.Event;
 
 public class EventTest {
     

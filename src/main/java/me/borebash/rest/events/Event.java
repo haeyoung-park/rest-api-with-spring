@@ -1,4 +1,4 @@
-package me.borebash.rest;
+package me.borebash.rest.events;
 
 import java.time.LocalDateTime;
 
