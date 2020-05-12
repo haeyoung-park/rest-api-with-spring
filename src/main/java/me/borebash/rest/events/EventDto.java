@@ -2,26 +2,14 @@ package me.borebash.rest.events;
 
 import java.time.LocalDateTime;
 
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Builder @AllArgsConstructor @NoArgsConstructor
-@Getter @Setter @EqualsAndHashCode(of = {"id"})
-@Entity
-public class Event {
-
-    @Id @GeneratedValue
-    private Integer id;
+@Data @Builder @NoArgsConstructor @AllArgsConstructor
+public class EventDto {
+    
     // Event Name
     private String name;
     // Evnet Description
@@ -36,14 +24,11 @@ public class Event {
     private LocalDateTime endEventDateTime;
     // Event Location(optional)
     private String location;
-    // options
+    // option
     private int basePrice;
-    // options
+    // option
     private int maxPrice;
+    // option
     private int limitOfEnrollement;
-    private boolean offline;
-    private boolean free;
-    // Default Ordinal
-    @Enumerated (EnumType.STRING)
-    private EventStatus eventStatus = EventStatus.DRAFT;
+
 }
