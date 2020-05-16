@@ -1,6 +1,15 @@
 package me.borebash.rest.events;
 
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
+import static org.springframework.restdocs.headers.HeaderDocumentation.responseHeaders;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+// import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedResponseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -56,7 +65,7 @@ public class EventControllerTests {
                 .endEventDateTime(LocalDateTime.of(2020, 05, 13, 23, 57))
                 .basePrice(100)
                 .maxPrice(200)
-                .limitOfEnrollement(100)
+                .limitOfEnrollment(100)
                 .location("REST API Center")
                 .build();
 
@@ -77,7 +86,55 @@ public class EventControllerTests {
             .andExpect(jsonPath("_links.self").exists())
             .andExpect(jsonPath("_links.update-event").exists())
             .andExpect(jsonPath("_links.query-events").exists())
-            .andDo(document("create-event"));
+            .andDo(document("create-event",
+                    links(
+                        linkWithRel("self").description("link to self"),
+                        linkWithRel("query-events").description("link to query events"),
+                        linkWithRel("update-event").description("link to update an existing event")
+
+                    ),
+                    requestHeaders(
+                        headerWithName(HttpHeaders.ACCEPT).description("accept header"),
+                        headerWithName(HttpHeaders.CONTENT_TYPE).description("content type header")
+                    ),
+                    requestFields(
+                        fieldWithPath("name").description("Name of new evnet"),
+                        fieldWithPath("description").description("Description of new event"),
+                        fieldWithPath("beginEnrollmentDateTime").description("Date time of begin of new event"),
+                        fieldWithPath("closeEnrollmentDateTime").description("Date time of close of new event"),
+                        fieldWithPath("beginEventDateTime").description("Date time of begin of new event"),
+                        fieldWithPath("endEventDateTime").description("Date time of end of new event"),
+                        fieldWithPath("location").description("location of new event"),
+                        fieldWithPath("basePrice").description("base price of new event"),
+                        fieldWithPath("maxPrice").description("max price of new event"),
+                        fieldWithPath("limitOfEnrollment").description("limit of enrollment")
+                    ),
+                    responseHeaders(
+                        headerWithName(HttpHeaders.LOCATION).description("Location header"),
+                        headerWithName(HttpHeaders.CONTENT_TYPE).description("Content Type")
+                    ),
+                    responseFields(
+                        fieldWithPath("id").description("Identifier of new evnet"),
+                        fieldWithPath("name").description("Name of new event"),
+                        fieldWithPath("description").description("Description of new event"),
+                        fieldWithPath("beginEnrollmentDateTime").description("Date time of begin of new event"),
+                        fieldWithPath("closeEnrollmentDateTime").description("Date time of close of new event"),
+                        fieldWithPath("beginEventDateTime").description("Date time of begin of new event"),
+                        fieldWithPath("endEventDateTime").description("Date time of end of new event"),
+                        fieldWithPath("location").description("location of new event"),
+                        fieldWithPath("basePrice").description("base price of new event"),
+                        fieldWithPath("maxPrice").description("max price of new event"),
+                        fieldWithPath("limitOfEnrollment").description("limit of enrollment"),
+                        fieldWithPath("free").description("It tells if this event is free or not"),
+                        fieldWithPath("offline").description("It tells if event is offline event or not"),
+                        fieldWithPath("eventStatus").description("Event Status"),
+                    
+                        fieldWithPath("_links.self.href").description("Link to self"),
+                        fieldWithPath("_links.query-events.href").description("Link to query event list"),
+                        fieldWithPath("_links.update-event.href").description("Link to update event  exiting event")
+                    )
+
+            ));
 
     }
 
@@ -89,11 +146,16 @@ public class EventControllerTests {
                 .closeEnrollmentDateTime(LocalDateTime.of(2020, 05, 13, 23, 57))
                 .beginEventDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
                 .endEventDateTime(LocalDateTime.of(2020, 05, 13, 23, 57)).basePrice(100).maxPrice(200)
-                .limitOfEnrollement(100).location("REST API Center").free(true).offline(false)
+                .limitOfEnrollment(100).location("REST API Center").free(true).offline(false)
                 .eventStatus(EventStatus.DRAFT).build();
 
-        mockMvc.perform(post("/api/events/").contentType(MediaType.APPLICATION_JSON).accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(event))).andDo(print()).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/events/")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(event)))
+                .andDo(print())
+                .andExpect(status()
+                .isBadRequest());
     }
 
     @Test
@@ -117,7 +179,7 @@ public class EventControllerTests {
             .endEventDateTime(LocalDateTime.of(2020,05,13,23,57))
             .basePrice(10000)
             .maxPrice(200)
-            .limitOfEnrollement(100)
+            .limitOfEnrollment(100)
             .location("REST API Center")
             .build();
         

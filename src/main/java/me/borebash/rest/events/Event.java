@@ -40,7 +40,7 @@ public class Event {
     private int basePrice;
     // options
     private int maxPrice;
-    private int limitOfEnrollement;
+    private int limitOfEnrollment;
     private boolean offline;
     private boolean free;
     // Default Ordinal
