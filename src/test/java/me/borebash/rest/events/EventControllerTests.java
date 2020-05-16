@@ -8,11 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 
 import java.time.LocalDateTime;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 //import org.mockito.Mockito;
@@ -47,22 +43,35 @@ public class EventControllerTests {
     @Test
     @TestDescription("정상적으로 이벤트를 생성 검증")
     public void createEvent() throws Exception {
-        EventDto event = EventDto.builder().name("SpringBoot").description("REST API Development with SpringBoot")
+        EventDto eventDto = EventDto.builder().name("SpringBoot").description("REST API Development with SpringBoot")
                 .beginEnrollmentDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
                 .closeEnrollmentDateTime(LocalDateTime.of(2020, 05, 13, 23, 57))
                 .beginEventDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
-                .endEventDateTime(LocalDateTime.of(2020, 05, 13, 23, 57)).basePrice(100).maxPrice(200)
-                .limitOfEnrollement(100).location("REST API Center").build();
+                .endEventDateTime(LocalDateTime.of(2020, 05, 13, 23, 57))
+                .basePrice(100)
+                .maxPrice(200)
+                .limitOfEnrollement(100)
+                .location("REST API Center")
+                .build();
 
         // Mockito.when(eventRepository.save(event)).thenReturn(event);
 
-        mockMvc.perform(post("/api/events/").contentType(MediaType.APPLICATION_JSON).accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(event))).andDo(print()).andExpect(status().isCreated())
-                .andExpect(jsonPath("id").exists()).andExpect(header().exists(HttpHeaders.LOCATION))
-                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaTypes.HAL_JSON_VALUE))
-                .andExpect(jsonPath("id").value(Matchers.not(100)))
-                .andExpect(jsonPath("free").value(Matchers.not(true)))
-                .andExpect(jsonPath("eventStatus").value(Matchers.is(EventStatus.DRAFT)));
+        mockMvc.perform(post("/api/events/")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaTypes.HAL_JSON)
+                .content(objectMapper.writeValueAsString(eventDto)))
+            .andDo(print())
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("id").exists())
+            .andExpect(header().exists(HttpHeaders.LOCATION))
+            .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaTypes.HAL_JSON_VALUE))
+            .andExpect(jsonPath("free").value(false))
+            .andExpect(jsonPath("offline").value(true))
+            .andExpect(jsonPath("eventStatus").value(EventStatus.DRAFT.name()))
+            .andExpect(jsonPath("_links.self").exists())
+            .andExpect(jsonPath("_links.update-event").exists())
+            .andExpect(jsonPath("_links.query-events").exists())
+            ;
     }
 
     @Test

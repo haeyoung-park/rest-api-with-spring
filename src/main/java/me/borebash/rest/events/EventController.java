@@ -1,11 +1,7 @@
 package me.borebash.rest.events;
 
-import static org.springframework.hateoas.server.mvc.ControllerLinkBuilder.linkTo;
-//import static org.springframework.hateoas.server.mvc.ControllerLinkBuilder.methodOn;
-
-import java.net.URI;
-
 import javax.validation.Valid;
+import java.net.URI;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.hateoas.MediaTypes;
@@ -15,6 +11,8 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @Controller
 @RequestMapping(value = "/api/events", produces = MediaTypes.HAL_JSON_VALUE)
@@ -49,11 +47,18 @@ public class EventController {
 //            .build()
 
 // Intead
-        final Event event = modelMapper.map(eventDto, Event.class);
+        Event event = modelMapper.map(eventDto, Event.class);
+        event.update();
+        Event newEvent = eventRepository.save(event);
 
-        final Event newEvent = eventRepository.save(event);
-        final URI createUri = linkTo(EventController.class).slash(newEvent.getId()).toUri();
-        return ResponseEntity.created(createUri).body(event);
+        // Create Link
+        WebMvcLinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
+        URI createUri = selfLinkBuilder.toUri();
+        EventResource eventResource = new EventResource(event);
+        eventResource.add(linkTo(EventController.class).withRel("query-events"));
+        eventResource.add(selfLinkBuilder.withRel("update-event"));
+
+        return ResponseEntity.created(createUri).body(eventResource);
     }
 
 
