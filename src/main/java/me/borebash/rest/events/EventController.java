@@ -1,7 +1,7 @@
 package me.borebash.rest.events;
 
 import static org.springframework.hateoas.server.mvc.ControllerLinkBuilder.linkTo;
-import static org.springframework.hateoas.server.mvc.ControllerLinkBuilder.methodOn;
+//import static org.springframework.hateoas.server.mvc.ControllerLinkBuilder.methodOn;
 
 import java.net.URI;
 
@@ -26,21 +26,21 @@ public class EventController {
 
     private final EventValidator eventValidator;
 
-    public EventController(EventRepository eventRepository, ModelMapper modelMapper, EventValidator eventValidator) {
+    public EventController(final EventRepository eventRepository, final ModelMapper modelMapper, final EventValidator eventValidator) {
         this.eventRepository = eventRepository;
         this.modelMapper = modelMapper;
         this.eventValidator = eventValidator;
     }
 
     @PostMapping
-    public ResponseEntity createEvent(@RequestBody @Valid EventDto eventDto, Errors errors) {
+    public ResponseEntity createEvent(@RequestBody @Valid final EventDto eventDto, final Errors errors) {
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(errors);
         }
 
         eventValidator.validate(eventDto, errors);
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(errors);
         }
 //        Event event = Event.builder()
 //            .name(eventDto.getName())
@@ -49,10 +49,10 @@ public class EventController {
 //            .build()
 
 // Intead
-        Event event = modelMapper.map(eventDto, Event.class);
+        final Event event = modelMapper.map(eventDto, Event.class);
 
-        Event newEvent = eventRepository.save(event);
-        URI createUri = linkTo(EventController.class).slash(newEvent.getId()).toUri();
+        final Event newEvent = eventRepository.save(event);
+        final URI createUri = linkTo(EventController.class).slash(newEvent.getId()).toUri();
         return ResponseEntity.created(createUri).body(event);
     }
 
