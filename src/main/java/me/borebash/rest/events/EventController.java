@@ -3,7 +3,9 @@ package me.borebash.rest.events;
 import javax.validation.Valid;
 import java.net.URI;
 
+import org.apache.catalina.connector.Response;
 import org.modelmapper.ModelMapper;
+import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -11,6 +13,9 @@ import org.springframework.validation.Errors;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import me.borebash.rest.common.ErrorsResource;
+
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
@@ -33,12 +38,12 @@ public class EventController {
     @PostMapping
     public ResponseEntity createEvent(@RequestBody @Valid final EventDto eventDto, final Errors errors) {
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(errors);
+            return badRequest(errors);
         }
 
         eventValidator.validate(eventDto, errors);
         if (errors.hasErrors()) {
-            return ResponseEntity.badRequest().body(errors);
+            return badRequest(errors);
         }
 //        Event event = Event.builder()
 //            .name(eventDto.getName())
@@ -57,9 +62,12 @@ public class EventController {
         EventResource eventResource = new EventResource(event);
         eventResource.add(linkTo(EventController.class).withRel("query-events"));
         eventResource.add(selfLinkBuilder.withRel("update-event"));
-
+        eventResource.add(new Link("docs/index.html#resources-events-create").withRel("profile"));
         return ResponseEntity.created(createUri).body(eventResource);
     }
 
+    private ResponseEntity badRequest(Errors errors) {
+        return ResponseEntity.badRequest().body(new ErrorsResource(errors));
+    }
 
 }
