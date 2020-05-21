@@ -1,23 +1,29 @@
 package me.borebash.rest.events;
 
-import javax.validation.Valid;
-import java.net.URI;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
-import org.apache.catalina.connector.Response;
+import java.net.URI;
+import java.util.Optional;
+
+import javax.validation.Valid;
+
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
+import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import me.borebash.rest.common.ErrorsResource;
-
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
-import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
 
 @Controller
 @RequestMapping(value = "/api/events", produces = MediaTypes.HAL_JSON_VALUE)
@@ -64,6 +70,31 @@ public class EventController {
         eventResource.add(selfLinkBuilder.withRel("update-event"));
         eventResource.add(new Link("docs/index.html#resources-events-create").withRel("profile"));
         return ResponseEntity.created(createUri).body(eventResource);
+    }
+
+    @GetMapping
+    // PagedResourcesAssembler Page를 Resource로 바꾸어서 사용해야할 때, Spring Data JPA 
+    public ResponseEntity queryEvents(Pageable pageable, PagedResourcesAssembler<Event> assembler) {
+        Page<Event> page = this.eventRepository.findAll(pageable);
+        // PagedResourcesAssembler<EntityModel<Event>> 
+        var pagedResources = assembler.toModel(page, e -> new EventResource(e));
+        // 무엇이든 EntitiyModel(Resource), RepresentationModel로 변경이 된 후에는 링크추가 메서드를 가짐
+        pagedResources.add(new Link("/docs/index.html#resources-events-list").withRel("profile"));
+
+        return ResponseEntity.ok(pagedResources);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity getEvent(@PathVariable Integer id) {
+        Optional<Event> optionalEvent = this.eventRepository.findById(id);
+        if (optionalEvent.isEmpty()) 
+            return ResponseEntity.notFound().build();
+        
+        Event event = optionalEvent.get();
+        EventResource eventResource = new EventResource(event);
+        eventResource.add(new Link("/docs/index.html#resources-events-get").withRel("profile"));
+
+        return ResponseEntity.ok(eventResource);
     }
 
     private ResponseEntity badRequest(Errors errors) {

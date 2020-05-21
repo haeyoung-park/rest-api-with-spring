@@ -1,15 +1,17 @@
 package me.borebash.rest.events;
 
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
-import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
-import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.headers.HeaderDocumentation.responseHeaders;
-import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
-import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.linkWithRel;
+import static org.springframework.restdocs.hypermedia.HypermediaDocumentation.links;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 // import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedResponseFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
+import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.relaxedResponseFields;
+import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -17,6 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
+import java.util.stream.IntStream;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -37,6 +40,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import jdk.jfr.Description;
 import me.borebash.rest.common.RestDocsConfiguration;
 import me.borebash.rest.common.TestDescription;
 // @WebMvcTest
@@ -57,8 +61,11 @@ public class EventControllerTests {
     @Autowired
     ObjectMapper objectMapper;
 
+    @Autowired
+    EventRepository eventRepository;
+
     @Test
-    @TestDescription("정상적으로 이벤트를 생성 검증")
+    @TestDescription("정상인 이벤트 생성")
     public void createEvent() throws Exception {
         EventDto eventDto = EventDto.builder().name("SpringBoot").description("REST API Development with SpringBoot")
                 .beginEnrollmentDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
@@ -142,7 +149,7 @@ public class EventControllerTests {
     }
 
     @Test
-    @TestDescription("입력 받을 수 없는 값을 사용한 경우에 에러 발생 검증")
+    @TestDescription("입력 받을 수 없는 값을 사용한 경우")
     public void createEvent_BadRequest() throws Exception {
         Event event = Event.builder().id(100).name("SpringBoot").description("REST API Development with SpringBoot")
                 .beginEnrollmentDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
@@ -162,7 +169,7 @@ public class EventControllerTests {
     }
 
     @Test
-    @TestDescription("입력 값이 비어있는 경우 에러 검증")
+    @TestDescription("입력 값이 비어있는 경우")
     public void createEvent_BadRequest_EmptyInput() throws Exception {
         EventDto eventDto = EventDto.builder().build();
 
@@ -171,7 +178,7 @@ public class EventControllerTests {
     }
 
     @Test
-    @TestDescription("입력 값이 잘못된 경우 에러 검증 테스트")
+    @TestDescription("입력 값이 잘못된 경우")
     public void createEvent_BadRequest_WrongInput() throws Exception {
         EventDto eventDto =  EventDto.builder()
             .name("SpringBoot")
@@ -196,6 +203,85 @@ public class EventControllerTests {
         .andExpect(jsonPath("content[0].code").exists())
         .andExpect(jsonPath("_links.index").exists());
 
+    }
+
+    @Test
+    @Description("30개 이벤트를 10개씩 조회(페이징)")
+    public void queryEvents() throws Exception{
+        // Given
+        IntStream.range(0, 30).forEach(this::generateEvent);
+
+        // When & Then
+        this.mockMvc.perform(get("/api/events")
+                    .param("page", "1") // paging & sorting
+                    .param("size", "10")
+                    .param("sort", "name,DESC")) 
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("page").exists())
+            .andExpect(jsonPath("_embedded.eventList[0]._links.self").exists())
+            .andExpect(jsonPath("_links.self").exists())
+            .andExpect(jsonPath("_links.profile").exists())
+            .andDo(document("query-events", 
+                responseHeaders(
+                    headerWithName(HttpHeaders.CONTENT_TYPE).description("Content Type")
+                ),
+                relaxedResponseFields(
+                    fieldWithPath("_links.first").description("Move to the first page"),
+                    fieldWithPath("_links.prev").description("Move to the next page"),
+                    fieldWithPath("_links.self").description("Move to the current page"),
+                    fieldWithPath("_links.next").description("Move to the next page"),
+                    fieldWithPath("_links.last").description("Move to the last page"),
+                    fieldWithPath("_links.profile").description("Move to the profile page"),
+
+                    fieldWithPath("page.size").description("Number of posts shown"),
+                    fieldWithPath("page.totalElements").description("Number of all posts"),
+                    fieldWithPath("page.totalPages").description("Number of all posts"),
+                    fieldWithPath("page.number").description("Current Number")
+                )
+            ));
+            ;
+        // Than
+    }
+
+    @Test
+    @Description("기존 이벤트 한 개 조회")
+    public void getEvent() throws Exception {
+        // Given
+        Event event = this.generateEvent(100);
+
+        // When & Then
+        this.mockMvc.perform(get("/api/events/{id}", event.getId()))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("name").exists())
+            .andExpect(jsonPath("id").exists())
+            .andExpect(jsonPath("_links.self").exists())
+            .andExpect(jsonPath("_links.profile").exists())
+
+            .andDo(document("get-and-event")
+            )
+            ;
+    }
+
+    @Test
+    @Description("없는 이벤트 조회 -> Response 404")
+    public void getEvent404() throws Exception {
+        // When & Then
+        this.mockMvc.perform(get("/api/events/99999"))
+            .andDo(print())
+            .andExpect(status().isNotFound())
+            
+        ;
+    }
+
+    private Event generateEvent(int i) {
+        Event event = Event.builder()
+            .name("name" + i)
+            .description("test event")
+            .build();
+        
+        return this.eventRepository.save(event);
     }
 
 }
