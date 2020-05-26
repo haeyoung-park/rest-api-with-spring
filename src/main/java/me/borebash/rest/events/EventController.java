@@ -13,7 +13,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedResourcesAssembler;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.MediaTypes;
-import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.Errors;
@@ -25,6 +24,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import lombok.var;
 import me.borebash.rest.common.ErrorsResource;
 
 @Controller
@@ -65,7 +65,7 @@ public class EventController {
         Event newEvent = eventRepository.save(event);
 
         // Create Link
-        WebMvcLinkBuilder selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
+        var selfLinkBuilder = linkTo(EventController.class).slash(newEvent.getId());
         URI createUri = selfLinkBuilder.toUri();
         EventResource eventResource = new EventResource(event);
         eventResource.add(linkTo(EventController.class).withRel("query-events"));
@@ -84,6 +84,7 @@ public class EventController {
         pagedResources.add(new Link("/docs/index.html#resources-events-list").withRel("profile"));
 
         return ResponseEntity.ok(pagedResources);
+        //.ok(pagedResources);
     }
 
     @GetMapping("/{id}")

@@ -23,7 +23,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDateTime;
 import java.util.stream.IntStream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 //import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.boot.test.mock.mockito.MockBean;
@@ -35,17 +36,18 @@ import me.borebash.rest.common.BaseControllerTest;
 import me.borebash.rest.common.TestDescription;
 
 // @WebMvcTest
-
 public class EventControllerTests extends BaseControllerTest {
 
     // @MockBean
     // EventRepository eventRepository;
 
+    // Brfore => BeforeEach
+
     @Autowired
     EventRepository eventRepository;
 
     @Test
-    @TestDescription("정상인 이벤트 생성")
+    @DisplayName("정상인 이벤트 생성")
     public void createEvent() throws Exception {
         EventDto eventDto = EventDto.builder()
                 .name("SpringBoot")
@@ -131,7 +133,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("입력 받을 수 없는 값을 사용한 경우")
+    @DisplayName("입력 받을 수 없는 값을 사용한 경우")
     public void createEvent_BadRequest() throws Exception {
         Event event = Event.builder().id(100).name("SpringBoot").description("REST API Development with SpringBoot")
                 .beginEnrollmentDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
@@ -151,7 +153,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("입력 값이 비어있는 경우")
+    @DisplayName("입력 값이 비어있는 경우")
     public void createEvent_BadRequest_EmptyInput() throws Exception {
         EventDto eventDto = EventDto.builder().build();
 
@@ -160,7 +162,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("입력 값이 잘못된 경우")
+    @DisplayName("입력 값이 잘못된 경우")
     public void createEvent_BadRequest_WrongInput() throws Exception {
         EventDto eventDto =  EventDto.builder()
             .name("SpringBoot")
@@ -188,7 +190,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("30개 이벤트를 10개씩 조회(페이징)")
+    @DisplayName("30개 이벤트를 10개씩 조회(페이징)")
     public void queryEvents() throws Exception{
         // Given
         IntStream.range(0, 30).forEach(this::generateEvent);
@@ -226,7 +228,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("기존 이벤트 한 개 조회")
+    @DisplayName("기존 이벤트 한 개 조회")
     public void getEvent() throws Exception {
         // Given
         Event event = this.generateEvent(100);
@@ -246,7 +248,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("없는 이벤트 조회 -> Response 404")
+    @DisplayName("없는 이벤트 조회 -> Response 404")
     public void getEvent404() throws Exception {
         // When & Then
         this.mockMvc.perform(get("/api/events/99999"))
@@ -256,7 +258,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("이벤트 정상 수정")
+    @DisplayName("이벤트 정상 수정")
     public void updateEvent() throws Exception {
         // Given
         Event event = this.generateEvent(200);
@@ -278,7 +280,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("입력 값이 없는 경우 수정 실패")
+    @DisplayName("입력 값이 없는 경우 수정 실패")
     public void updateEvent400_Empty() throws Exception {
         // Given
         Event event = this.generateEvent(200);
@@ -295,7 +297,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("입력 값이 잘못된 경우 수정 실패")
+    @DisplayName("입력 값이 잘못된 경우 수정 실패")
     public void updateEvent400_Wrong() throws Exception {
         // Given
         Event event = this.generateEvent(200);
@@ -314,7 +316,7 @@ public class EventControllerTests extends BaseControllerTest {
     }
 
     @Test
-    @TestDescription("존재하지 않는 이벤트 수정 실패")
+    @DisplayName("존재하지 않는 이벤트 수정 실패")
     public void updateEvent404() throws Exception {
         // Givent
         Event event = this.generateEvent(100);
