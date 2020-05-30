@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.config.annotation.web.configurers.Aut
 import org.springframework.security.oauth2.provider.token.TokenStore;
 
 import me.borebash.rest.accounts.AccountService;
+import me.borebash.rest.common.AppProperties;
 
 @Configuration
 @EnableAuthorizationServer
@@ -30,6 +31,9 @@ public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
     @Autowired
     TokenStore tokenStore;
 
+    @Autowired
+    AppProperties appProperties;
+
     // Client Secret을 확인할 때 Encoder를 사용
     @Override
 	public void configure(AuthorizationServerSecurityConfigurer security) throws Exception {
@@ -41,10 +45,10 @@ public class AuthServerConfig extends AuthorizationServerConfigurerAdapter {
         clients.inMemory()
         // Refresh Token은 OAuth Token을 발급받을 때, Refresh Token도 같이 발급
         // Refresh Token을 가지고 새로운 Access Token을 발급받는 Grant Type
-                    .withClient("My Application")
+                    .withClient(appProperties.getClientId())
                     .authorizedGrantTypes("password", "refresh_token") 
                     .scopes("read", "write")
-                    .secret(this.passwordEncoder.encode("pass"))
+                    .secret(this.passwordEncoder.encode(appProperties.getClientSecret()))
                     .accessTokenValiditySeconds(10 * 60)
                     .refreshTokenValiditySeconds(6 * 10 * 60)
                     ;

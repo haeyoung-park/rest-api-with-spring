@@ -20,9 +20,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 //import org.mockito.Mockito;
@@ -31,23 +35,42 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.oauth2.common.util.Jackson2JsonParser;
+import org.springframework.test.web.servlet.ResultActions;
 
+import me.borebash.rest.accounts.Account;
+import me.borebash.rest.accounts.AccountRepository;
+import me.borebash.rest.accounts.AccountRole;
+import me.borebash.rest.accounts.AccountService;
+import me.borebash.rest.common.AppProperties;
 import me.borebash.rest.common.BaseControllerTest;
-import me.borebash.rest.common.TestDescription;
 
 // @WebMvcTest
 public class EventControllerTests extends BaseControllerTest {
 
     // @MockBean
     // EventRepository eventRepository;
-
-    // Brfore => BeforeEach
-
     @Autowired
     EventRepository eventRepository;
+    
+    @Autowired
+    AccountService accountService; 
+    
+    @Autowired
+    AccountRepository accountRepository;
+
+    @Autowired
+    AppProperties appProperties;
+    
+//    @BeforeEach
+//    public void set_up() {
+//        this.eventRepository.deleteAll();
+//        this.accountRepository.deleteAll();
+//    }
 
     @Test
-    @DisplayName("정상인 이벤트 생성")
+    @DisplayName("정상 이벤트 생성")
     public void createEvent() throws Exception {
         EventDto eventDto = EventDto.builder()
                 .name("SpringBoot")
@@ -65,6 +88,7 @@ public class EventControllerTests extends BaseControllerTest {
         // Mockito.when(eventRepository.save(event)).thenReturn(event);
 
         mockMvc.perform(post("/api/events/")
+                .header(HttpHeaders.AUTHORIZATION, getBearerToken())
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaTypes.HAL_JSON)
                 .content(objectMapper.writeValueAsString(eventDto)))
@@ -105,7 +129,7 @@ public class EventControllerTests extends BaseControllerTest {
                         headerWithName(HttpHeaders.LOCATION).description("Location header"),
                         headerWithName(HttpHeaders.CONTENT_TYPE).description("Content Type")
                     ),
-                    responseFields(
+                    relaxedResponseFields(
                         fieldWithPath("id").description("Identifier of new evnet"),
                         fieldWithPath("name").description("Name of new event"),
                         fieldWithPath("description").description("Description of new event"),
@@ -132,96 +156,102 @@ public class EventControllerTests extends BaseControllerTest {
 
     }
 
+    
     @Test
     @DisplayName("입력 받을 수 없는 값을 사용한 경우")
     public void createEvent_BadRequest() throws Exception {
         Event event = Event.builder().id(100).name("SpringBoot").description("REST API Development with SpringBoot")
-                .beginEnrollmentDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
-                .closeEnrollmentDateTime(LocalDateTime.of(2020, 05, 13, 23, 57))
-                .beginEventDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
-                .endEventDateTime(LocalDateTime.of(2020, 05, 13, 23, 57)).basePrice(100).maxPrice(200)
-                .limitOfEnrollment(100).location("REST API Center").free(true).offline(false)
-                .eventStatus(EventStatus.DRAFT).build();
-
+        .beginEnrollmentDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
+        .closeEnrollmentDateTime(LocalDateTime.of(2020, 05, 13, 23, 57))
+        .beginEventDateTime(LocalDateTime.of(2020, 05, 12, 23, 57))
+        .endEventDateTime(LocalDateTime.of(2020, 05, 13, 23, 57)).basePrice(100).maxPrice(200)
+        .limitOfEnrollment(100).location("REST API Center").free(true).offline(false)
+        .eventStatus(EventStatus.DRAFT).build();
+        
         mockMvc.perform(post("/api/events/")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(MediaTypes.HAL_JSON)
-                .content(objectMapper.writeValueAsString(event)))
-                .andDo(print())
-                .andExpect(status()
-                .isBadRequest());
+        .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+        .contentType(MediaType.APPLICATION_JSON)
+        .accept(MediaTypes.HAL_JSON)
+        .content(objectMapper.writeValueAsString(event)))
+        .andDo(print())
+        .andExpect(status()
+        .isBadRequest());
     }
-
+    
     @Test
     @DisplayName("입력 값이 비어있는 경우")
     public void createEvent_BadRequest_EmptyInput() throws Exception {
         EventDto eventDto = EventDto.builder().build();
-
-        this.mockMvc.perform(post("/api/events").contentType(MediaType.APPLICATION_JSON)
-                .content(this.objectMapper.writeValueAsString(eventDto))).andExpect(status().isBadRequest());
+        
+        this.mockMvc.perform(post("/api/events")
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(this.objectMapper.writeValueAsString(eventDto)))
+                .andExpect(status().isBadRequest());
     }
-
+    
     @Test
     @DisplayName("입력 값이 잘못된 경우")
     public void createEvent_BadRequest_WrongInput() throws Exception {
         EventDto eventDto =  EventDto.builder()
-            .name("SpringBoot")
-            .description("REST API Development with SpringBoot")
-            .beginEnrollmentDateTime(LocalDateTime.of(2021,05,12,23,57))
-            .closeEnrollmentDateTime(LocalDateTime.of(2020,05,13,23,57))
-            .beginEventDateTime(LocalDateTime.of(2020,05,12,23,57))
-            .endEventDateTime(LocalDateTime.of(2020,05,13,23,57))
-            .basePrice(10000)
-            .maxPrice(200)
-            .limitOfEnrollment(100)
-            .location("REST API Center")
-            .build();
+        .name("SpringBoot")
+        .description("REST API Development with SpringBoot")
+        .beginEnrollmentDateTime(LocalDateTime.of(2021,05,12,23,57))
+        .closeEnrollmentDateTime(LocalDateTime.of(2020,05,13,23,57))
+        .beginEventDateTime(LocalDateTime.of(2020,05,12,23,57))
+        .endEventDateTime(LocalDateTime.of(2020,05,13,23,57))
+        .basePrice(10000)
+        .maxPrice(200)
+        .limitOfEnrollment(100)
+        .location("REST API Center")
+        .build();
         
         this.mockMvc.perform(post("/api/events")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(this.objectMapper.writeValueAsString(eventDto)))
+        .header(HttpHeaders.AUTHORIZATION, getBearerToken())
+        .contentType(MediaType.APPLICATION_JSON)
+        .content(this.objectMapper.writeValueAsString(eventDto)))
         .andDo(print())
         .andExpect(status().isBadRequest())
         .andExpect(jsonPath("content[0].objectName").exists())
         .andExpect(jsonPath("content[0].defaultMessage").exists())
         .andExpect(jsonPath("content[0].code").exists())
         .andExpect(jsonPath("_links.index").exists());
-
+        
     }
-
+    
     @Test
     @DisplayName("30개 이벤트를 10개씩 조회(페이징)")
     public void queryEvents() throws Exception{
         // Given
         IntStream.range(0, 30).forEach(this::generateEvent);
-
+        
         // When & Then
         this.mockMvc.perform(get("/api/events")
-                    .param("page", "1") // paging & sorting
-                    .param("size", "10")
-                    .param("sort", "name,DESC")) 
-            .andDo(print())
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("page").exists())
-            .andExpect(jsonPath("_embedded.eventList[0]._links.self").exists())
-            .andExpect(jsonPath("_links.self").exists())
-            .andExpect(jsonPath("_links.profile").exists())
-            .andDo(document("query-events", 
-                responseHeaders(
-                    headerWithName(HttpHeaders.CONTENT_TYPE).description("Content Type")
-                ),
-                relaxedResponseFields(
-                    fieldWithPath("_links.first").description("Move to the first page"),
-                    fieldWithPath("_links.prev").description("Move to the next page"),
-                    fieldWithPath("_links.self").description("Move to the current page"),
-                    fieldWithPath("_links.next").description("Move to the next page"),
-                    fieldWithPath("_links.last").description("Move to the last page"),
-                    fieldWithPath("_links.profile").description("Move to the profile page"),
-
-                    fieldWithPath("page.size").description("Number of posts shown"),
-                    fieldWithPath("page.totalElements").description("Number of all posts"),
-                    fieldWithPath("page.totalPages").description("Number of all posts"),
-                    fieldWithPath("page.number").description("Current Number")
+        .param("page", "1") // paging & sorting
+        .param("size", "10")
+        .param("sort", "name,DESC")) 
+        .andDo(print())
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("page").exists())
+        .andExpect(jsonPath("_embedded.eventList[0]._links.self").exists())
+        .andExpect(jsonPath("_links.self").exists())
+        .andExpect(jsonPath("_links.profile").exists())
+        .andDo(document("query-events", 
+        responseHeaders(
+            headerWithName(HttpHeaders.CONTENT_TYPE).description("Content Type")
+            ),
+            relaxedResponseFields(
+                fieldWithPath("_links.first").description("Move to the first page"),
+                fieldWithPath("_links.prev").description("Move to the next page"),
+                fieldWithPath("_links.self").description("Move to the current page"),
+                fieldWithPath("_links.next").description("Move to the next page"),
+                fieldWithPath("_links.last").description("Move to the last page"),
+                fieldWithPath("_links.profile").description("Move to the profile page"),
+                
+                fieldWithPath("page.size").description("Number of posts shown"),
+                fieldWithPath("page.totalElements").description("Number of all posts"),
+                fieldWithPath("page.totalPages").description("Number of all posts"),
+                fieldWithPath("page.number").description("Current Number")
                 )
             ));
             ;
@@ -269,6 +299,7 @@ public class EventControllerTests extends BaseControllerTest {
 
         // When & Then
         this.mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(this.objectMapper.writeValueAsString(eventDto))
             )
@@ -288,6 +319,7 @@ public class EventControllerTests extends BaseControllerTest {
 
         // When & Then
         this.mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(this.objectMapper.writeValueAsBytes(eventDto))
             )
@@ -307,6 +339,7 @@ public class EventControllerTests extends BaseControllerTest {
 
         // When & Then
         this.mockMvc.perform(put("/api/events/{id}", event.getId())
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(this.objectMapper.writeValueAsBytes(eventDto))
             )
@@ -324,6 +357,7 @@ public class EventControllerTests extends BaseControllerTest {
 
         // When & Then
         this.mockMvc.perform(put("/api/events/123456789")
+                    .header(HttpHeaders.AUTHORIZATION, getBearerToken())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(this.objectMapper.writeValueAsBytes(eventDto))
             )
@@ -352,5 +386,23 @@ public class EventControllerTests extends BaseControllerTest {
         
         return this.eventRepository.save(event);
     }
+    private String getBearerToken() throws Exception {
+        return "Bearer" + getAccessToken();
+    }
+
+    private String getAccessToken() throws Exception {
+
+        ResultActions perform = mockMvc.perform(post("/oauth/token")
+                                    .with(httpBasic(appProperties.getClientId(), appProperties.getClientSecret()  )) // Basic Auth의 헤더
+                                    .param("username", appProperties.getUserUsername())
+                                    .param("password", appProperties.getUserPassword())
+                                    .param("grant_type", "password")
+                                    );
+
+        var responseBody = perform.andReturn().getResponse().getContentAsString();
+        Jackson2JsonParser parser = new Jackson2JsonParser();
+
+        return parser.parseMap(responseBody).get("access_token").toString();
+        }
 
 }
